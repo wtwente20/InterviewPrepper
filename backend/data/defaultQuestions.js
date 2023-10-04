@@ -1,4 +1,3 @@
-// data/defaultQuestions.js
 module.exports = [
   {
     questionText: "Tell me about yourself.",

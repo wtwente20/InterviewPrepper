@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // User Registration
 router.post('/register', async (req, res) => {
@@ -37,7 +38,8 @@ router.post('/register', async (req, res) => {
     res.cookie('auth-token', token, { httpOnly: true, secure: true, sameSite: 'None' });
 
 
-     // Responding with token and user data
+    // Responding with token and user data
+    console.log("Sending response:", { token, user: { name, email, username } });
     res.status(201).json({ token, user: { name, email, username } });
 
   } catch (err) {
@@ -47,22 +49,36 @@ router.post('/register', async (req, res) => {
 
 // User Login
 router.post('/login', async (req, res) => {
+  console.log('Received login request with data:', req.body);
+
   const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).send('Username or password is wrong');
-    
-    const validPass = await bcrypt.compare(password, user.password);
-    if (!validPass) return res.status(400).send('Username or password is wrong');
-    
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
-    res.header('auth-token', token).send(token);
+      const user = await User.findOne({ username });
+      if (!user) return res.status(400).send('Username or password is wrong');
+
+      const validPass = await bcrypt.compare(password, user.password);
+      if (!validPass) return res.status(400).send('Username or password is wrong');
+
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+
+      // Send token and user details in the response
+      res.json({
+          token: token,
+          user: {
+              name: user.name,
+              email: user.email,
+              username: user.username
+              // Include any other user fields you want to send to the frontend here
+          }
+      });
 
   } catch (err) {
-    res.status(400).send(err);
+      res.status(400).send(err);
   }
 });
+
+
 
 
 // Save a user's answer to a universal question
@@ -77,6 +93,16 @@ router.post('/:userId/answers', async (req, res) => {
     res.status(201).json(user);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+});
+
+// Token Validation and Fetch User
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password'); // Excluding the password from the result
+    res.json(user);
+  } catch (err) {
+    res.status(400).send(err);
   }
 });
 

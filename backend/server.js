@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 require('dotenv').config();
 const userRoutes = require('./routes/userRoutes');
 const questionsRoutes = require('./routes/questionRoutes');
@@ -31,6 +32,11 @@ mongoose.connect(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cl
     }
 })
 .catch(err => console.log(err));
+
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
 
 // Routes
 app.use('/api/users', userRoutes);
