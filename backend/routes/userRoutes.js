@@ -8,9 +8,10 @@ const authMiddleware = require('../middlewares/authMiddleware');
 // User Registration
 router.post('/register', async (req, res) => {
   const { name, email, username, password } = req.body;
-
+  console.log('User registration initiated.')
   // Validate Data Before Creating a User
   if (!name || !email || !username || !password) {
+    console.error('Registration failed due to missing fields.');
     return res.status(400).send('All fields are required.');
   }
 
@@ -33,6 +34,9 @@ router.post('/register', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET);
+    //Make sure token is succesffully generated
+    console.log('Generated JWT:', token);
+
 
     // Send token in HTTP cookie
     res.cookie('auth-token', token, { httpOnly: true, secure: true, sameSite: 'None' });
@@ -55,17 +59,23 @@ router.post('/login', async (req, res) => {
 
   try {
       const user = await User.findOne({ username });
-      if (!user) return res.status(400).send('Username or password is wrong');
-
+      if (!user) {
+        return res.status(400).send('Username or password is wrong');
+      }
       const validPass = await bcrypt.compare(password, user.password);
-      if (!validPass) return res.status(400).send('Username or password is wrong');
+      if (!validPass) {
+        return res.status(400).send('Username or password is wrong');
+      }
 
       const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+      //Make sure token is succesffully generated
+      console.log('Generated JWT:', token);
 
       // Send token and user details in the response
       res.json({
           token: token,
           user: {
+              _id: user._id,
               name: user.name,
               email: user.email,
               username: user.username
@@ -74,34 +84,24 @@ router.post('/login', async (req, res) => {
       });
 
   } catch (err) {
-      res.status(400).send(err);
-  }
-});
-
-
-
-
-// Save a user's answer to a universal question
-router.post('/:userId/answers', async (req, res) => {
-  const { userId } = req.params;
-  const { questionId, answers } = req.body;  // Assume answers are passed as an array
-  
-  try {
-    const user = await User.findById(userId);
-    user.responses.push({ questionId, answers });
-    await user.save();
-    res.status(201).json(user);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error('Error during login:', err);
+    res.status(400).send(err);
   }
 });
 
 // Token Validation and Fetch User
 router.get('/me', authMiddleware, async (req, res) => {
+  console.log('Fetching user by token.');
   try {
-    const user = await User.findById(req.user._id).select('-password'); // Excluding the password from the result
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      console.error('No user found for ID:', req.user._id);
+      return res.status(401).send('Authentication failed');
+    }
+    console.log('User fetched successfully:', user);
     res.json(user);
   } catch (err) {
+    console.error('Error during user fetch:', err);
     res.status(400).send(err);
   }
 });

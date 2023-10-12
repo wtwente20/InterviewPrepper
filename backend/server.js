@@ -42,7 +42,12 @@ app.use(cors({
 app.use('/api/users', userRoutes);
 app.use('/api/questions', questionsRoutes);
 
-// Server Listening
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

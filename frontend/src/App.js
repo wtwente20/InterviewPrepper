@@ -54,7 +54,7 @@ function App() {
         <Route path="/" element={<Resources />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/questions" element={<Questions />} />
+        <Route path="/questions" element={<Questions user={user} />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/performance" element={<Performance />} />
         {/* ... other routes */}

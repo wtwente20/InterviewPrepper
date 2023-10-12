@@ -1,23 +1,14 @@
 const mongoose = require('mongoose');
 
-const answerSchema = new mongoose.Schema({
-  response: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  // Additional properties for each answer can be added here if needed
-});
-
 const questionSchema = new mongoose.Schema({
   questionText: {
     type: String,
     required: true,
   },
-  answers: {
-    type: [String], // or whatever your answer schema looks like
-    required: true,
-  },
+  answers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Answer',
+  }],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -28,5 +19,6 @@ const questionSchema = new mongoose.Schema({
     default: false,
   },
 });
+
 
 module.exports = mongoose.model('Question', questionSchema);

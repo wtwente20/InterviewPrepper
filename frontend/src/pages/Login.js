@@ -29,6 +29,7 @@ function Login({ setUser }) {
 
         const { token, user } = response.data;  // Extract both token and user from the response
         localStorage.setItem('authToken', token);
+        console.log('Stored token:', localStorage.getItem('authToken')); // Ensure token is received on front end
         setUser(user);  // Set the user in state using the user data from the response
         
         console.log("Navigating to root after login");

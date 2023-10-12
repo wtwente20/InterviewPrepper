@@ -12,7 +12,7 @@ function Questions({ user }) {
     const fetchDefaultQuestions = async () => {
       try {
         const response = await axios.get('/api/questions');
-        setQuestions(response.data);
+        setQuestions(response.data || []);
       } catch (error) {
         console.error('Error fetching default questions:', error);
       }
@@ -21,8 +21,13 @@ function Questions({ user }) {
     const fetchUserQuestions = async () => {
       if (user) {
         try {
-          const response = await axios.get(`/api/questions/user/${user._id}`);
-          setUserQuestions(response.data);
+          const token = localStorage.getItem('authToken');
+          const response = await axios.get(`/api/questions/user/${user._id}`, {
+            headers: {
+              'auth-token': token
+            }
+          });
+          setUserQuestions(response.data || []);
         } catch (error) {
           console.error('Error fetching user questions:', error);
         }
@@ -37,23 +42,44 @@ function Questions({ user }) {
     setUserQuestions(prev => prev.map(q => q._id === updatedQuestion._id ? updatedQuestion : q));
   };
 
+  const handleDefaultQuestionUpdate = (updatedQuestion) => {
+    setQuestions(prev => prev.map(q => q._id === updatedQuestion._id ? updatedQuestion : q));
+  };
+
   const handleQuestionDelete = (questionId) => {
     setUserQuestions(prev => prev.filter(q => q._id !== questionId));
   };
 
   const addNewQuestion = async () => {
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+        console.error('No token available for request');
+        return;
+    }
+
+    const newQuestionData = {
+      questionText: newQuestionText,
+      answers: newQuestionAnswers.split(',').map(answer => answer.trim()),
+      userId: user._id,
+      isDefault: false
+    };
+
     try {
-      const response = await axios.post('/api/questions', {
-        questionText: newQuestionText,
-        answers: newQuestionAnswers.split(',').map(answer => answer.trim()),
-        userId: user._id,
-        isDefault: false
-      });
-      setUserQuestions([...userQuestions, response.data]);
-      setNewQuestionText('');
-      setNewQuestionAnswers('');
+        const response = await axios.post(
+            `/api/questions/user/${user._id}`,
+            newQuestionData,
+            {
+                headers: {
+                    'auth-token': token
+                }
+            }
+        );
+        setUserQuestions(prev => [...prev, response.data]);
+        setNewQuestionText('');
+        setNewQuestionAnswers('');
     } catch (error) {
-      console.error('Error adding new question:', error);
+        console.error('Error adding new question:', error);
     }
   };
 
@@ -62,22 +88,29 @@ function Questions({ user }) {
       <h2>Interview Questions</h2>
       
       <h3>Default Questions</h3>
-      {questions.map((question) => (
-        <QuestionCard key={question._id} question={question} />
+      {Array.isArray(questions) && questions.length > 0 && questions.map((question) => (
+        <QuestionCard
+          key={question._id}
+          question={question}
+          user={user}
+          onQuestionUpdate={handleDefaultQuestionUpdate}
+        />
       ))}
-
+  
       {user && (
         <>
           <h3>Your Custom Questions</h3>
-          {userQuestions.map((question) => (
+          {Array.isArray(userQuestions) && userQuestions.length > 0 && userQuestions.map((question) => (
             <QuestionCard
               key={question._id}
               question={question}
-              editable={true}
+              user={user}
+              editable
               onQuestionUpdate={handleQuestionUpdate}
               onQuestionDelete={handleQuestionDelete}
             />
           ))}
+  
           <div className="add-question">
             <input
               type="text"
@@ -85,13 +118,7 @@ function Questions({ user }) {
               value={newQuestionText}
               onChange={(e) => setNewQuestionText(e.target.value)}
             />
-            <input
-              type="text"
-              placeholder="Possible answers (comma separated)..."
-              value={newQuestionAnswers}
-              onChange={(e) => setNewQuestionAnswers(e.target.value)}
-            />
-            <button onClick={addNewQuestion}>Add Question</button>
+            <button onClick={addNewQuestion}>Add Custom Question</button>
           </div>
         </>
       )}
